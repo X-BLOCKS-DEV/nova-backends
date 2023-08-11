@@ -1,0 +1,21 @@
+GET http://127.0.0.1:8080/v1/users/01H7EJEVDPPG45AFFPJQ6TF5RG
+###
+POST http://127.0.0.1:8080/v1/users
+Content-Type: application/json
+
+{
+    "name": "test",
+    "email": "test@mail.com",
+    "isAdmin": true,
+    "passwordHash": "hashed_password"
+}
+###
+PUT http://127.0.0.1:8080/v1/users/01H7EJEVDPPG45AFFPJQ6TF5RG
+Content-Type: application/json
+
+{
+    "name": "test_changed"
+}
+
+###
+DELETE http://127.0.0.1:8080/v1/users/01H7EJEVDPPG45AFFPJQ6TF5RG
