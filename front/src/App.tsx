@@ -1,18 +1,24 @@
-import Sidebar from "./components/Sidebar"
+import { Route, Routes } from "react-router-dom";
+import RootLayout from "./components/RootLayout";
+import SettingsLayout from "./components/SettingsLayout";
+import SettingsIndex from "./pages/settings/index";
 
 function App() {
   return (
     <>
-      <div className='d-flex'>
-        <div className="col-auto">
-          <Sidebar />
-        </div>
-        <div>
+      <Routes>
+        <Route path="/" element={<RootLayout />}>
+          <Route index element={<div>Home</div>} />
+          <Route path="dashboard" element={<div>Dashboard</div>} />
+          <Route path="settings" element={<SettingsLayout />}>
+            <Route index element={<SettingsIndex />} />
+          </Route>
 
-        </div>
-      </div>
+          <Route path="*" element={<div>Nothing path</div>} />
+        </Route>
+      </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

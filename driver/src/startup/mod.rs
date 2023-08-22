@@ -1,39 +1,33 @@
 use crate::modules::Modules;
-use crate::routes::user::{
-    create_user, delete_user, get_user, update_user
-};
-use crate::routes::system::shutdown;
-use axum::routing::{get, post};
-use axum::{Extension, Router};
+use crate::routes::user::{ create_user, delete_user, get_user, update_user };
+use crate::routes::system::{ shutdown, reboot };
+use axum::routing::{ get, post };
+use axum::{ Extension, Router };
 use dotenv::dotenv;
 use std::env;
-use std::net::{IpAddr, SocketAddr};
+use std::net::{ IpAddr, SocketAddr };
 use std::sync::Arc;
 
 pub async fn startup(modules: Arc<Modules>) {
     let system_router = Router::new()
-        .route("/shutdown", get(shutdown));
+        .route("/shutdown", get(shutdown))
+        .route("/reboot", get(reboot));
 
     let user_router = Router::new()
         .route("/", post(create_user))
-        .route(
-            "/:id",
-                get(get_user)
-                .put(update_user)
-                .delete(delete_user)
-        );
+        .route("/:id", get(get_user).put(update_user).delete(delete_user));
 
     let app = Router::new()
-        .nest("/v1/users", user_router)
-        .nest("/v1/system", system_router)
+        .nest("/api/v1/users", user_router)
+        .nest("/api/v1/system", system_router)
         .layer(Extension(modules));
 
     let addr = SocketAddr::from(init_addr());
     tracing::info!("Server listening on {}", addr);
 
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
+    axum::Server
+        ::bind(&addr)
+        .serve(app.into_make_service()).await
         .unwrap_or_else(|_| panic!("Server cannot launch."));
 }
 
