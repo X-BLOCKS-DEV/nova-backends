@@ -1,0 +1,17 @@
+[package]
+name = "nova-adapter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nova-core = { path = "../core" }
+anyhow = "1.0.71"
+async-trait = "0.1.72"
+chrono = { version = "0.4.26" }
+sqlx = { version = "0.7", features = [
+    "postgres",
+    "runtime-tokio-rustls",
+    "chrono",
+] }
