@@ -1,1 +1,7 @@
 /target
+
+logs/**
+statuses/**
+
+!logs/.gitkeep
+!statuses/.gitkeep
