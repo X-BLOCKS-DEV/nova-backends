@@ -1,12 +1,14 @@
-use crate::modules::Modules;
-use crate::routes::user::{ create_user, delete_user, get_user, update_user };
-use crate::routes::system::{ shutdown, reboot };
-use axum::routing::{ get, post };
-use axum::{ Extension, Router };
-use dotenv::dotenv;
 use std::env;
 use std::net::{ IpAddr, SocketAddr };
 use std::sync::Arc;
+
+use axum::routing::{ get, post };
+use axum::{ Extension, Router };
+use dotenv::dotenv;
+
+use crate::modules::Modules;
+use crate::routes::user::{ create_user, delete_user, get_user, update_user };
+use crate::routes::system::{ shutdown, reboot };
 
 pub async fn startup(modules: Arc<Modules>) {
     let system_router = Router::new()
@@ -23,6 +25,7 @@ pub async fn startup(modules: Arc<Modules>) {
         .layer(Extension(modules));
 
     let addr = SocketAddr::from(init_addr());
+
     tracing::info!("Server listening on {}", addr);
 
     axum::Server

@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+NOVA_ROOT="$(readlink -f $(dirname "${BASH_SOURCE[0]}")/../..)"
+
+memory_total_bytes() {
+  free --bytes | awk 'NR==2 {print $2}'
+}
+
+memory_used_bytes() {
+  free --bytes | awk 'NR==2 {print $3}'
+}
+
+get_container_memory_use() {
+  local container="${1}"
+
+  local container_memory=0
+
+  local container_pids=$(docker top "${container}" | tail -n +2 | awk '{print $2}')
+  for pid in $container_pids; do
+    local pid_memory=$(ps u "${pid}" | awk '{print $4}' | grep -v 'MEM')
+    if [[ ! -z "${pid_memory}" ]]; then
+      container_memory=$(awk "BEGIN {print ${container_memory}+${pid_memory}}")
+    fi
+  done
+
+  echo "${container_memory}"
+}
+
+json="{}"
+
+total=$(memory_total_bytes)
+json=$(echo $json | jq --arg total "${total}" '. + {total: $total|tonumber}')
+
+used=$(memory_used_bytes)
+json=$(echo $json | jq --arg used "${used}" '. + {used: $used|tonumber}')
+
+cumulative_app_memory="0"
+
+nova=$(($used-$cumulative_app_memory))
+json=$(echo $json | jq --arg nova "${nova}" '.breakdown |= .+ [{id: "nova", used: $nova|tonumber}]')
+
+echo $json | jq '.breakdown |= sort_by(-.used)'
