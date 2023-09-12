@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Default options
+PRINT_DOCKER_WARNING="true"
+UPDATE_APT="true"
+INSTALL_APT_DEPS="true"
+INSTALL_AVAHI="true"
+INSTALL_YQ="true"
+INSTALL_DOCKER="true"
+INSTALL_DOCKER_COMPOSE="true"
+INSTALL_START_SCRIPT="true"
+# NOVA_VERSION="release"
+# NOVA_REPO="getumbrel/umbrel"
+NOVA_INSTALL_PATH="$HOME/nova"
+
+# Parse arguments
+arguments=${@:-}
+
+if [[ "${arguments}" = *"--no-docker-warning"* ]]
+then
+  PRINT_DOCKER_WARNING="false"
+fi
+
+if [[ "${arguments}" = *"--no-install-avahi"* ]]
+then
+  INSTALL_AVAHI="false"
+fi
+
+if [[ "${arguments}" = *"--no-install-yq"* ]]
+then
+  INSTALL_YQ="false"
+fi
+
+if [[ "${arguments}" = *"--no-install-docker"* ]]
+then
+  INSTALL_DOCKER="false"
+fi
+
+if [[ "${arguments}" = *"--no-install-compose"* ]]
+then
+  INSTALL_DOCKER_COMPOSE="false"
+fi
+
+if [[ "${arguments}" = *"--no-install-start-script"* ]]
+then
+  INSTALL_START_SCRIPT="false"
+fi
+
+if [[ "${arguments}" = *"--no-install-deps"* ]]
+then
+  UPDATE_APT="false"
+  INSTALL_APT_DEPS="false"
+  INSTALL_AVAHI="false"
+  INSTALL_YQ="false"
+  INSTALL_DOCKER="false"
+  INSTALL_DOCKER_COMPOSE="false"
+  INSTALL_NOVA="true"
+fi
+
+if [[ "${arguments}" = *"--version"* ]]
+then
+  NOVA_VERSION="$(echo "${arguments}" | sed 's/.*--version \([^ ]*\).*/\1/')"
+fi
+
+if [[ "${arguments}" = *"--install-path"* ]]
+then
+  NOVA_INSTALL_PATH="$(echo "${arguments}" | sed 's/.*--install-path \([^ ]*\).*/\1/')"
+fi
+
+update_apt() {
+  sudo apt-get update --yes
+}
+
+install_apt_deps() {
+  sudo apt-get install --yes fswatch jq rsync curl git gettext-base python3 gnupg
+}
+
+install_avahi() {
+  sudo apt-get install --yes avahi-daemon avahi-discover libnss-mdns
+}
+
+install_yq() {
+  # Define checksums for yq (4.24.5)
+  declare -A yq_sha256
+  yq_sha256["arm64"]="8879e61c0b3b70908160535ea358ec67989ac4435435510e1fcb2eda5d74a0e9"
+  yq_sha256["amd64"]="c93a696e13d3076e473c3a43c06fdb98fafd30dc2f43bc771c4917531961c760"
+
+  yq_version="v4.24.5"
+  system_arch=$(dpkg --print-architecture)
+  yq_binary="yq_linux_${system_arch}"
+
+  # Download yq from GitHub
+  yq_temp_file="/tmp/yq"
+  curl -L "https://github.com/mikefarah/yq/releases/download/${yq_version}/${yq_binary}" -o "${yq_temp_file}"
+
+  # Check file matches checksum
+  if [[ "$(sha256sum "${yq_temp_file}" | awk '{ print $1 }')" == "${yq_sha256[$system_arch]}" ]]; then
+    sudo mv "${yq_temp_file}" /usr/bin/yq
+    sudo chmod +x /usr/bin/yq
+
+    echo "yq installed successfully..."
+  else
+    echo "yq install failed. sha256sum mismatch"
+    exit 1
+  fi
+}
+
+install_docker() {
+  # Install Docker
+  sudo apt-get install --yes docker.io
+}
+
+install_docker_compose() {
+  sudo apt-get install --yes docker-compose
+}
+
+get_arch() {
+  machine_arch="$(uname --machine)"
+  if [[ "${machine_arch}" = "x86_64" ]]
+  then
+    binary_arch="amd64"
+  elif [[ "${machine_arch}" = "aarch64" ]]
+  then
+    binary_arch="arm64"
+  else
+    echo "Unsupported architecture: ${machine_arch}"
+    exit 1
+  fi
+
+  echo "${binary_arch}"
+}
+
+install_umbrel() {
+  version=$(get_nova_version)
+  binary_arch=$(get_arch)
+  curl --location "https://api.github.com/repos/${NOVA_REPO}/tarball/${version}" | \
+  tar --extract --gzip --strip-components=1 --directory="${NOVA_INSTALL_PATH}"
+}
+
+install_systemd_service() {
+echo "
+[Unit]
+Wants=network-online.target
+After=network-online.target
+Wants=docker.service
+After=docker.service
+
+# This prevents us hitting restart rate limits and ensures we keep restarting
+# indefinitely.
+StartLimitInterval=0
+
+[Service]
+Type=forking
+TimeoutStartSec=infinity
+TimeoutStopSec=16min
+ExecStart=${NOVA_INSTALL_PATH}/scripts/start
+ExecStop=${NOVA_INSTALL_PATH}/scripts/stop
+User=root
+Group=root
+SyslogIdentifier=nova startup
+RemainAfterExit=yes
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target" | sudo tee "/etc/systemd/system/nova-startup.service"
+  sudo chmod 644 "/etc/systemd/system/nova-startup.service"
+  sudo systemctl enable "nova-startup.service"
+}
+
+main() {
+  echo "About to install Nova in \"${NOVA_INSTALL_PATH}\"."
+  echo "If you would like to install somewhere else you can specify a custom location with:"
+  echo
+  echo "  curl -L https://umbrel.sh | bash -s -- --install-path /some/path"
+  echo
+  echo "Waiting for 10 seconds..."
+  echo
+  echo "You may press Ctrl+C now to abort the install."
+  echo
+  sleep 10
+
+  if [[ "${PRINT_DOCKER_WARNING}" = "true" ]] && [[ "${INSTALL_DOCKER}" = "true" ]] && command -v docker >/dev/null 2>&1
+  then
+
+cat << 'EOF'
+It looks like you already have Docker installed. Nova requires a predictable version of Docker so this script will install Docker via apt.
+
+If you would like to disable this behaviour you can abort this install and run again with --no-install-docker or --no-install-compose.
+
+You can pass flags to the installer like this:
+
+  curl -L https://umbrel.sh | bash -s -- --no-install-docker --no-install-compose
+
+Waiting for 30 seconds...
+
+You may press Ctrl+C now to abort the install.
+
+EOF
+    sleep 30
+  fi
+
+  if [[ "${UPDATE_APT}" = "true" ]]
+  then
+    update_apt
+  fi
+
+  if [[ "${INSTALL_APT_DEPS}" = "true" ]]
+  then
+    install_apt_deps
+  fi
+
+  if [[ "${INSTALL_AVAHI}" = "true" ]]
+  then
+    install_avahi
+  fi
+
+  if [[ "${INSTALL_YQ}" = "true" ]]
+  then
+    install_yq
+  fi
+
+  if [[ "${INSTALL_DOCKER}" = "true" ]]
+  then
+    install_docker
+  fi
+
+  if [[ "${INSTALL_DOCKER_COMPOSE}" = "true" ]]
+  then
+    install_docker_compose
+  fi
+  if [[ "${INSTALL_NOVA}" = "true" ]]
+  then
+    install_nova
+    if [[ "${INSTALL_START_SCRIPT}" = "true" ]]
+    then
+      install_systemd_service
+    fi
+    # Do the initial start outside of systemd so we get logs
+    sudo ${NOVA_INSTALL_PATH}/scripts/start
+    if [[ "${INSTALL_START_SCRIPT}" = "true" ]]
+    then
+      # Kick off the systemd service again so it's in sync
+      sudo systemctl start "nova-startup.service"
+    fi
+  echo
+  echo "Umbrel has been sucessfully installed!"
+  fi
+}
+
+main
