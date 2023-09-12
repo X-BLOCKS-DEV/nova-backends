@@ -1,22 +1,31 @@
 version: "3.7"
 
 services:
-  db:
-    container_name: postgres
-    image: postgres:15.4
+  manager:
+    container_name: nova_manager
+    build: ./manager
     restart: on-failure
-    stop_grace_period: 30s
-    ports:
-      - "${POSTGRES_PORT}:3000"
+    stop_grace_period: 5m30s
+    volumes:
+      - ${PWD}:${PWD}
+      - ${PWD}/events/signals:/signals
+      - ${PWD}/statuses:/statuses
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_BINARY:-/usr/bin/docker}:/usr/bin/docker
+    environment:
+      PORT: $MANAGER_PORT
+      SHUTDOWN_SIGNAL_FILE: "/signals/shutdown"
+      REBOOT_SIGNAL_FILE: "/signals/reboot"
     networks:
       default:
-        ipv4_address: $POSTGRES_IP
+        ipv4_address: $MANAGER_IP
   nginx:
     container_name: nginx
     image: nginx:1.17.8@sha256:380eb808e2a3b0dd954f92c1cae2f845e6558a15037efefcabc5b4e03d666d03
-    depends_on: [ db ]
+    depends_on: [manager]
     volumes:
       - ${PWD}/nginx:/etc/nginx
+      - ${PWD}/front/dist:/var/www/html
     restart: on-failure
     stop_grace_period: 30s
     ports:
