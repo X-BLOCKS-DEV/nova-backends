@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Stop NOVA
+
+if [[ $UID != 0 ]]; then
+    echo "NOVA must be stopped as root"
+    echo "Please re-run this script as"
+    echo "  sudo ./scripts/stop"
+    exit 1
+fi
+
+NOVA_ROOT="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/.."
+USER_FILE="${NOVA_ROOT}/db/user.json"
+
+if [[ ! -d "$NOVA_ROOT" ]]; then
+  echo "Root dir does not exist '$NOVA_ROOT'"
+  exit 1
+fi
+
+cd "$NOVA_ROOT"
+
+# Increase default Docker and Compose timeouts to 240s
+export DOCKER_CLIENT_TIMEOUT=240
+export COMPOSE_HTTP_TIMEOUT=240
+
+# TODO: Transition to pidfiles so we can reliably kill these processes
+# Run this before Docker, as Docker can fail to stop cleanly
+echo "Killing background services"
+ps -Af \
+  | grep '\./karen\|\./scripts/status-monitor\|\./scripts/memory-monitor\|nova/scripts\|fswatch' \
+  | grep -v '\-run.sh\|update\|stop\|novad' \
+  | awk '{print $2}' \
+  | xargs sudo kill 2> /dev/null || true
+
+# if [[ "${@}" != *"--no-stop-server"* ]]; then
+ # pkill --full 'caxa.*novad' || true
+# fi
+
+compose_files=( "--file" "docker-compose.yml" )
+
+echo "Stopping Docker services..."
+echo
+docker-compose "${compose_files[@]}" down

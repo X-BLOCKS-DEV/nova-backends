@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 
-STATUS_FILE_PATH="/umbrel-status"
+STATUS_FILE_PATH="/nova-status"
 
 service_id="${1}"
 status="${2}"
 error_code="${3}"
 
-source /etc/default/umbrel 2> /dev/null
-if [[ -z "${UMBREL_OS:-}" ]]; then
-  echo "Skipping status update when not on Umbrel OS"
-  exit
-fi
+source /etc/default/nova 2> /dev/null
 
 if [[ "${service_id}" == "" ]]; then
   echo "Error: Missing ID"
