@@ -6,6 +6,9 @@ const app = express();
 const diskUtils = require('utils/disk.js');
 const asyncHandler = require('utils/asyncHandler.js');
 const constants = require('utils/const.js');
+const cors = require('cors')
+
+app.use(cors())
 
 app.get('/', (req, res) => {
   res.send('Welcome to Nova!');
