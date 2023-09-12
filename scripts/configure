@@ -54,15 +54,18 @@ echo
 
 # Store paths to intermediary config files
 NGINX_CONF_FILE="./templates/nginx.conf"
+NGINX_MIME_FILE="./templates/mime.types"
 ENV_FILE="./templates/.env"
 
 # Remove intermediary files if they exist from any
 # previous unclean configuration run
 [[ -f "$NGINX_CONF_FILE" ]] && rm -f "$NGINX_CONF_FILE"
+[[ -f "$NGINX_MIME_FILE" ]] && rm -f "$NGINX_MIME_FILE"
 [[ -f "$ENV_FILE" ]] && rm -f "$ENV_FILE"
 
 # Copy template configs to intermediary configs
 [[ -f "./templates/nginx-sample.conf" ]] && cp "./templates/nginx-sample.conf" "$NGINX_CONF_FILE"
+[[ -f "./templates/mime-sample.types" ]] && cp "./templates/mime-sample.types" "$NGINX_MIME_FILE"
 [[ -f "./templates/.env-sample" ]] && cp "./templates/.env-sample" "$ENV_FILE"
 
 
@@ -112,6 +115,7 @@ done
 ##########################################################
 
 mv -f "$NGINX_CONF_FILE" "./nginx/nginx.conf"
+mv -f "$NGINX_MIME_FILE" "./nginx/mime.types"
 mv -f "$ENV_FILE" "./.env"
 
 ##########################################################

@@ -24,6 +24,8 @@ cd "$NOVA_ROOT"
 export DOCKER_CLIENT_TIMEOUT=240
 export COMPOSE_HTTP_TIMEOUT=240
 
+echo "Clear signal file"
+
 # TODO: Transition to pidfiles so we can reliably kill these processes
 # Run this before Docker, as Docker can fail to stop cleanly
 echo "Killing background services"

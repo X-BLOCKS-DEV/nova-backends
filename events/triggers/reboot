@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 
 ./scripts/stop
+sleep 10
 reboot

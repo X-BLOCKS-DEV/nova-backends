@@ -2,4 +2,5 @@
 
 json="{}"
 
-cat /proc/uptime | awk '{print int($1)}'
+seconds=$(cat /proc/uptime | awk '{print int($1)}')
+echo $json | jq --arg seconds "${seconds}" '. + {seconds: $seconds|tonumber}'

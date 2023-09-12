@@ -193,12 +193,12 @@ You can pass flags to the installer like this:
 
   curl -L https://umbrel.sh | bash -s -- --no-install-docker --no-install-compose
 
-Waiting for 30 seconds...
+Waiting for 10 seconds...
 
 You may press Ctrl+C now to abort the install.
 
 EOF
-    sleep 30
+    sleep 10
   fi
 
   if [[ "${UPDATE_APT}" = "true" ]]
@@ -245,7 +245,7 @@ EOF
       sudo systemctl start "nova-startup.service"
     fi
   echo
-  echo "Umbrel has been sucessfully installed!"
+  echo "Nova has been sucessfully installed!"
   fi
 }
 

@@ -1,6 +1,8 @@
 .env
 logs/**
 statuses/**
+db/**
 
+!db/.gitkeep
 !logs/.gitkeep
 !statuses/.gitkeep

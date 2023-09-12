@@ -16,4 +16,7 @@ fi
 temperature=$(cat "${temperature_file}")
 
 # Convert millidegrees celsius to degrees celsius
-echo "${temperature}" | awk '{print int($1/1000)}'
+celsius=$(echo "${temperature}" | awk '{print int($1/1000)}')
+
+json="{}"
+echo $json | jq --arg celsius "${celsius}" '. + {celsius: $celsius|tonumber}'

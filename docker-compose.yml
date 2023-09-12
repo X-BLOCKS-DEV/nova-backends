@@ -10,12 +10,15 @@ services:
       - ${PWD}:${PWD}
       - ${PWD}/events/signals:/signals
       - ${PWD}/statuses:/statuses
+      - ${PWD}/db:/db
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DOCKER_BINARY:-/usr/bin/docker}:/usr/bin/docker
     environment:
       PORT: $MANAGER_PORT
       SHUTDOWN_SIGNAL_FILE: "/signals/shutdown"
       REBOOT_SIGNAL_FILE: "/signals/reboot"
+      METADATA_FILE: "/db/info.json"
+      STATUS_DIR: "/statuses"
     networks:
       default:
         ipv4_address: $MANAGER_IP

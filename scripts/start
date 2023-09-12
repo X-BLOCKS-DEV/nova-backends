@@ -10,6 +10,7 @@ if [[ $UID != 0 ]]; then
     exit 1
 fi
 
+
 check_dependencies () {
   for cmd in "$@"; do
     if ! command -v $cmd >/dev/null 2>&1; then
@@ -31,6 +32,12 @@ check_dependencies rsync jq curl
 NOVA_ROOT="$(dirname $(readlink -f "${BASH_SOURCE[0]}"))/.."
 NOVA_LOGS="${NOVA_ROOT}/logs"
 USER_FILE="${NOVA_ROOT}/db/user.json"
+
+if [[ ! -f ${NOVA_ROOT}/db/info.json ]]; then
+    echo "Metadata file is not exists"
+    echo "Please create this file first!"
+    exit 1
+fi
 
 set_status="${NOVA_ROOT}/scripts/status-server/set-status"
 
@@ -75,16 +82,19 @@ export COMPOSE_HTTP_TIMEOUT=240
 
 cd "$NOVA_ROOT"
 
+echo "Clearing signals"
+rm -f ${NOVA_ROOT}/events/signals/*
+
 echo "Starting karen..."
 echo
 ./karen &>> "${NOVA_LOGS}/karen.log" &
 
 echo "Starting status monitors..."
 pkill -f ./scripts/status-monitor || true
-./scripts/status-monitor memory 60 &>> "${NOVA_LOGS}/status-monitor.log" &
-./scripts/status-monitor storage 60 &>> "${NOVA_LOGS}/status-monitor.log" &
-./scripts/status-monitor temperature 15 &>> "${NOVA_LOGS}/status-monitor.log" &
-./scripts/status-monitor uptime 15 &>> "${NOVA_LOGS}/status-monitor.log" &
+./scripts/status-monitor memory 1 &>> "${NOVA_LOGS}/status-monitor.log" &
+./scripts/status-monitor storage 1 &>> "${NOVA_LOGS}/status-monitor.log" &
+./scripts/status-monitor temperature 1 &>> "${NOVA_LOGS}/status-monitor.log" &
+./scripts/status-monitor uptime 1 &>> "${NOVA_LOGS}/status-monitor.log" &
 
 # Automatically update app repo every 5 minutes
 # If the app repo has not yet been cloned (ie it's a fresh Nova install)

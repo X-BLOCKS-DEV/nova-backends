@@ -14,4 +14,6 @@ module.exports = {
   PORT: process.env.PORT || 3006,
   SHUTDOWN_SIGNAL_FILE: process.env.SHUTDOWN_SIGNAL_FILE || '/signals/shutdown',
   REBOOT_SIGNAL_FILE: process.env.REBOOT_SIGNAL_FILE || '/signals/reboot',
+  STATUS_DIR: process.env.STATUS_DIR || '/statuses',
+  METADATA_FILE: process.env.METADATA_FILE || '/db/info.json',
 };
